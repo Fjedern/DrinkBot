@@ -5,7 +5,7 @@ const url =
   "https://script.google.com/macros/s/AKfycbxDITI30ye__w14324pEGY7SyFXkvcN8uKSmlyJ55ZwWKZR0hxEsNwTn7402PKr73pe/exec";
 
 // replace the value below with the Telegram token you receive from @BotFather
-const token = "5302243785:AAGD-zEZXZ_R1V8ESSasTO8JVXUHqPRvKYQ";
+const token = "";
 
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, { polling: true });
