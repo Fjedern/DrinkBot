@@ -1,11 +1,13 @@
 import TelegramBot from "node-telegram-bot-api";
 import fetch from "node-fetch";
+import dotenv from "dotenv";
+dotenv.config();
 
 const url =
   "https://script.google.com/macros/s/AKfycbxDITI30ye__w14324pEGY7SyFXkvcN8uKSmlyJ55ZwWKZR0hxEsNwTn7402PKr73pe/exec";
 
 // replace the value below with the Telegram token you receive from @BotFather
-const token = "";
+const token = process.env.TELEGRAM_BOT_TOKEN;
 
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, { polling: true });
