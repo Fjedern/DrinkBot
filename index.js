@@ -1,20 +1,38 @@
 // Dependencies
 import express from "express";
-import axios from "axios";
 import bodyParser from "body-parser";
-import dotenv from "dotenv";
+import axios from "axios";
 
 import { getRandomDrink, getDrinkByName } from "./api/drinkApi.js";
-
-dotenv.config();
+import { sendMessage, sendImage } from "./api/telegramBot.js";
 
 const app = express();
 const port = 80;
-const url = "https://api.telegram.org/bot";
-const apiToken = process.env.TELEGRAM_BOT_TOKEN;
 
 // Configurations
 app.use(bodyParser.json());
+
+var keyboards = {
+  help_menu: {
+    keyboard: [
+      [
+        { text: "/randomdrink" },
+        { text: "/drink mojito" },
+        { text: "Saved ❤️" },
+      ],
+      [{ text: "/help" }, { text: "WIP" }],
+    ],
+  },
+  like_menu: {
+    inline_keyboard: [
+      [
+        { text: "❤️", callback_data: "heart" },
+        { text: "👍🏻", callback_data: "fis" },
+      ],
+      [{ text: "👍🏻", callback_data: "fis" }],
+    ],
+  },
+};
 
 // Endpoints
 app.post("/", (req, res) => {
@@ -53,13 +71,18 @@ app.post("/", (req, res) => {
     sendMessage(chatId, "ananas");
   }
 
+  if (/\/help/.test(sentMessage)) {
+    // const helpString = "Available commands: \n/randomdrink\n/drink mojito";
+    sendMessage(chatId, "Available commands:", keyboards.help_menu);
+  }
+
   if (/\/randomdrink/.test(sentMessage)) {
     getRandomDrink().then(function (result) {
       const drink = result.drinks[0];
       const drinkImage = drink.strDrinkThumb;
 
       const captionText = makeDrinkString(drink);
-      sendImage(chatId, drinkImage, captionText);
+      sendImage(chatId, drinkImage, captionText, keyboards.like_menu);
     });
   }
 
@@ -67,8 +90,8 @@ app.post("/", (req, res) => {
     var myRegexp = new RegExp(/\/drink (.+)/);
     var match = myRegexp.exec(sentMessage);
 
-    getDrinkByName(match[1]).then(function(result){
-      if(result.drink !== null){
+    getDrinkByName(match[1]).then(function (result) {
+      if (result.drink !== null) {
         const drink = result.drinks[0];
         const drinkImage = drink.strDrinkThumb;
 
@@ -77,7 +100,6 @@ app.post("/", (req, res) => {
       } else {
         sendMessage(chatId, "No such drink");
       }
-      
     });
 
     sendMessage(chatId, "you searched for: " + match[1]);
@@ -98,7 +120,7 @@ function makeDrinkString(drink) {
       ingredients.push(currentIngredient);
     }
     if (currentMeasurement !== null) {
-      currentMeasurement = currentMeasurement.replaceAll("-", "\\-")
+      currentMeasurement = currentMeasurement.replaceAll("-", "\\-");
       measurements.push(currentMeasurement);
     }
   }
@@ -117,27 +139,13 @@ function makeDrinkString(drink) {
     .replaceAll(",", "\\,")
     .replaceAll("-", "\\-")
     .replaceAll("(", "\\(")
-    .replaceAll(")", "\\)");
+    .replaceAll(")", "\\)")
+    .replaceAll("!", "\\!")
+    .replaceAll("?", "\\?");
   let drinkString =
     `*${drinkName}*\n\n` + measurmentsAndIngredients + "\n" + instructions;
 
   return drinkString;
-}
-
-async function sendMessage(chatId, message) {
-  axios.post(`${url}${apiToken}/sendMessage`, {
-    chat_id: chatId,
-    text: message,
-  });
-}
-
-async function sendImage(chatId, message, captionText) {
-  axios.post(`${url}${apiToken}/sendphoto`, {
-    chat_id: chatId,
-    photo: message,
-    caption: captionText,
-    parse_mode: "MarkdownV2",
-  });
 }
 
 // Listening
