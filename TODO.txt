@@ -1,0 +1,8 @@
+TODO: 
+- Fix Ingredients and Measurments
+- Add inline keyboard
+- Add custom keyboard
+
+FIXME: 
+- Make separate files
+- Create more functions
