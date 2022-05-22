@@ -3,7 +3,8 @@ import express from "express";
 import axios from "axios";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+
+import { getRandomDrink, getDrinkByName } from "./api/drinkApi.js";
 
 dotenv.config();
 
@@ -55,41 +56,10 @@ app.post("/", (req, res) => {
   if (/\/randomdrink/.test(sentMessage)) {
     getRandomDrink().then(function (result) {
       const drink = result.drinks[0];
-      const drinkName = drink.strDrink;
       const drinkImage = drink.strDrinkThumb;
 
-      var ingredients = [];
-      var measurements = [];
-
-      for (var i = 1; i <= 15; i++) {
-        let currentIngredient = eval(`drink.strIngredient${i}`);
-        let currentMeasurement = eval(`drink.strMeasure${i}`);
-        if (currentIngredient !== null) {
-          ingredients.push(currentIngredient);
-        }
-        if (currentMeasurement !== null) {
-          measurements.push(currentMeasurement);
-        }
-      }
-      let measurmentsAndIngredients = "";
-      ingredients.forEach(function (ingredient, index) {
-        if (measurements[index] !== undefined) {
-          measurmentsAndIngredients +=
-            measurements[index] + " " + ingredient + "\n";
-        } else {
-          measurmentsAndIngredients += ingredient + "\n";
-        }
-      });
-      let instructions = drink.strInstructions;
-      instructions = instructions
-        .replaceAll(".", "\\.")
-        .replaceAll(",", "\\,")
-        .replaceAll("-", "\\-")
-        .replaceAll("(", "\\(")
-        .replaceAll(")", "\\)");
-      const captionText =
-        `*${drinkName}*\n\n` + measurmentsAndIngredients + instructions;
-      sendImage(chatId, drinkImage, captionText, ingredients, measurements);
+      const captionText = makeDrinkString(drink);
+      sendImage(chatId, drinkImage, captionText);
     });
   }
 
@@ -97,12 +67,61 @@ app.post("/", (req, res) => {
     var myRegexp = new RegExp(/\/drink (.+)/);
     var match = myRegexp.exec(sentMessage);
 
+    getDrinkByName(match[1]).then(function(result){
+      if(result.drink !== null){
+        const drink = result.drinks[0];
+        const drinkImage = drink.strDrinkThumb;
+
+        const captionText = makeDrinkString(drink);
+        sendImage(chatId, drinkImage, captionText);
+      } else {
+        sendMessage(chatId, "No such drink");
+      }
+      
+    });
+
     sendMessage(chatId, "you searched for: " + match[1]);
   }
 });
 
-function makeDrinkString(drink){
-  
+function makeDrinkString(drink) {
+  const drinkName = drink.strDrink;
+
+  var ingredients = [];
+  var measurements = [];
+
+  for (var i = 1; i <= 15; i++) {
+    let currentIngredient = eval(`drink.strIngredient${i}`);
+    let currentMeasurement = eval(`drink.strMeasure${i}`);
+    if (currentIngredient !== null) {
+      currentIngredient = currentIngredient.replaceAll("-", "\\-");
+      ingredients.push(currentIngredient);
+    }
+    if (currentMeasurement !== null) {
+      currentMeasurement = currentMeasurement.replaceAll("-", "\\-")
+      measurements.push(currentMeasurement);
+    }
+  }
+  let measurmentsAndIngredients = "";
+  ingredients.forEach(function (ingredient, index) {
+    if (measurements[index] !== undefined) {
+      measurmentsAndIngredients +=
+        measurements[index] + " " + ingredient + "\n";
+    } else {
+      measurmentsAndIngredients += ingredient + "\n";
+    }
+  });
+  let instructions = drink.strInstructions;
+  instructions = instructions
+    .replaceAll(".", "\\.")
+    .replaceAll(",", "\\,")
+    .replaceAll("-", "\\-")
+    .replaceAll("(", "\\(")
+    .replaceAll(")", "\\)");
+  let drinkString =
+    `*${drinkName}*\n\n` + measurmentsAndIngredients + "\n" + instructions;
+
+  return drinkString;
 }
 
 async function sendMessage(chatId, message) {
@@ -112,13 +131,7 @@ async function sendMessage(chatId, message) {
   });
 }
 
-async function sendImage(
-  chatId,
-  message,
-  captionText,
-  ingredients,
-  measurements
-) {
+async function sendImage(chatId, message, captionText) {
   axios.post(`${url}${apiToken}/sendphoto`, {
     chat_id: chatId,
     photo: message,
@@ -131,11 +144,3 @@ async function sendImage(
 app.listen(port, () => {
   console.log(`Listening on port ${port}`);
 });
-
-async function getRandomDrink() {
-  const response = await fetch(
-    "https://www.thecocktaildb.com/api/json/v1/1/random.php"
-  );
-  const data = await response.json();
-  return data;
-}
