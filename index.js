@@ -4,10 +4,17 @@ import bodyParser from "body-parser";
 import axios from "axios";
 
 import { getRandomDrink, getDrinkByName } from "./api/drinkApi.js";
-import { sendMessage, sendImage } from "./api/telegramBot.js";
+import {
+  sendMessage,
+  sendImage,
+  editMessageReplyMarkup,
+} from "./api/telegramBot.js";
 
 const app = express();
 const port = 80;
+
+const url = "https://api.telegram.org/bot";
+const apiToken = process.env.TELEGRAM_BOT_TOKEN;
 
 // Configurations
 app.use(bodyParser.json());
@@ -26,26 +33,42 @@ var keyboards = {
   like_menu: {
     inline_keyboard: [
       [
-        { text: "❤️", callback_data: "heart" },
-        { text: "👍🏻", callback_data: "fis" },
+        { text: "❤️", callback_data: "save" },
+        { text: "👎🏻", callback_data: "dislike" },
       ],
-      [{ text: "👍🏻", callback_data: "fis" }],
+      [{ text: "Info", callback_data: "test" }],
     ],
   },
 };
+
+let chatId;
+let sentMessage;
+let replyData;
+let likes = 0;
+let messageId;
+let replyMarkupHasBeenSent = false;
 
 // Endpoints
 app.post("/", (req, res) => {
   console.log(req.body);
 
-  let chatId;
-  let sentMessage;
-  if (req.body.message !== undefined) {
+  if (req.body.callback_query !== undefined) {
+    replyMarkupHasBeenSent = true;
+    replyData = req.body.callback_query.data;
+    messageId = req.body.callback_query.message.message_id;
+  }
+
+  if (replyData === "save" && replyMarkupHasBeenSent) {
+    likes++;
+    console.log("LIKES: " + likes);
+    editMessageReplyMarkup(chatId, messageId);
+  }
+  if (req.body.message !== undefined && req.body.callback_query === undefined) {
     chatId = req.body.message.chat.id;
     sentMessage = req.body.message.text;
   }
 
-  console.log("Chatid: " + chatId + "\n sentMessage: " + sentMessage);
+  console.log("DATA:" + replyData);
 
   //Regex for hello
   if (req.body.message !== "undefined") {
